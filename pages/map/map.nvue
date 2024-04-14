@@ -1,0 +1,144 @@
+<template>
+	<view>
+		<view>
+			<!-- <view>
+				<web-view src="../../hybrid/html/map.html" style="width: 100%; height: 500px;"></web-view>
+			</view> -->
+			<view>
+				<button type="warn" size="mini" @click="getLocation()">获取位置</button>
+			</view>
+		</view>
+	</view>
+</template>
+<script>
+	import dataUrl from '@/common/dataUri.js'
+	
+	export default {
+		data() {
+			return {
+				timer: null,
+				form: {
+					type: "wgs84",
+					userName: "",
+					deviceId: "",
+					phonenumber: "",
+					longitude: "",
+					latitude: "",
+					addInfo: ""
+				},
+				// title: 'map',
+				// latitude: 39.909,
+				// longitude: 116.39742,
+				// covers: [{
+				// 	id: 1,
+				// 	latitude: 39.9085,
+				// 	longitude: 116.39747,
+				// 	// #ifdef APP-PLUS
+				// 	iconPath: '../../static/app-plus/location@3x.png',
+				// 	// #endif
+				// 	// #ifndef APP-PLUS 
+				// 	iconPath: '../../static/location.png',
+				// 	// #endif
+				// }, {
+				// 	id: 2,
+				// 	latitude: 39.90,
+				// 	longitude: 116.39,
+				// 	// #ifdef APP-PLUS
+				// 	iconPath: '../../static/app-plus/location@3x.png',
+				// 	// #endif
+				// 	// #ifndef APP-PLUS
+				// 	iconPath: '../../static/location.png',
+				// 	// #endif
+				// }],
+				
+			}
+		},
+		onShow() {
+			console.log('vue show')
+			this.checkUser();
+			// this.checkOpenGPSService();
+			this.onSetTimeout();
+		},
+		onHide() {
+			console.log('vue Hide')
+			this.clearTimer();
+		},
+		methods: {
+			checkUser(){
+				this.form.userName = uni.getStorageSync('uni_map_user');
+				this.form.phonenumber = uni.getStorageSync('uni_map_phone');
+				const {deviceBrand, deviceModel, deviceId, osName, osVersion} = uni.getSystemInfoSync();
+				this.form.deviceId = deviceId;
+				if (!this.form.userName || !this.form.phonenumber) {
+					uni.showModal({
+						title: "提示",
+						content: "个人信息未维护，请先维护个人信息。",
+						showCancel: false,
+						success: function (res) {
+							uni.switchTab({
+								url: '../info/info'
+							});
+						}
+					})
+				};
+			},
+
+			
+			getLocation(){
+				var _this = this;
+				uni.getLocation({
+					type: this.form.type,
+					geocode: true,
+					success: function (res) {
+						console.log("经度："+ res.longitude);
+						console.log("纬度："+ res.latitude);
+						_this.form.longitude = res.longitude;
+						_this.form.latitude = res.latitude;
+						_this.form.addInfo = JSON.stringify(res.address);
+						_this.updateLocationData();
+					}
+				});
+			},
+			
+			
+			//上传位置信息
+			updateLocationData(){
+				uni.request({
+					url: dataUrl.uploadLocationUri,
+					method: "POST",
+					header: {
+						"Content-Type": "application/json"
+					},
+					data: this.form,
+					success: (res) => {
+						console.log(res.data);
+					},
+					fail: (res) => {
+						uni.showModal({
+							title: "提示",
+							content: res.errMsg,
+							showCancel: false,
+						})
+					}
+				})
+			},
+
+			onSetTimeout() {
+				if (!this.timer) {
+					this.timer = setTimeout(this.getLocation(), 1000*60);
+				}
+			},
+			
+			clearTimer() {
+				if (this.timer) {
+					clearTimeout(this.timer);
+					this.timer = null;
+					
+				}
+			},
+		}
+	}
+</script>
+<style>
+	
+</style>
